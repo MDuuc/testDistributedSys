@@ -13,6 +13,7 @@ class FaultTolerantRedisClone:
         self.sorted_sets: Dict[str, List[tuple]] = {} 
         self.expiry_times: Dict[str, float] = {}  # Lưu thời gian hết hạn cho các key
         self.lock = threading.RLock()  # Reentrant lock for thread safety
+        self.lock_list = threading.Lock()
         self.snapshot_interval = snapshot_interval
         self.snapshot_file = snapshot_file
         self.last_snapshot_time = time.time()
@@ -36,9 +37,9 @@ class FaultTolerantRedisClone:
         self.snapshot_thread.start()
 
     def _cleanup_expired_keys(self):
-        """Xóa các key đã hết hạn"""
+        """Remove keys that have expired."""
         while True:
-            time.sleep(1)  # Kiểm tra mỗi giây
+            time.sleep(1)  # Check every second
             with self.lock:
                 current_time = time.time()
                 expired_keys = [
@@ -416,6 +417,73 @@ class FaultTolerantRedisClone:
             logging.error(f"Error in ZGETALL {zset_key}: {str(e)}")
             raise
     # End Sorted sets
+
+    # Start List
+    def _get_list(self, key):   
+        """Helper method to get a list from the data store."""
+        if key not in self.data_store:
+            self.data_store[key] = []
+        elif not isinstance(self.data_store[key], list):
+            raise TypeError(f"Key '{key}' does not hold a list.")
+        return self.data_store[key]
+    
+    def lpush(self, key, *values):
+        """Push values to the head of the list."""
+        with self.lock_list:
+            lst = self._get_list(key)
+            for value in reversed(values):  # Maintain LPUSH semantics
+                lst.insert(0, value)
+        return len(lst)
+
+    def rpush(self, key, *values):
+        """Push values to the tail of the list."""
+        with self.lock_list:
+            lst = self._get_list(key)
+            lst.extend(values)
+        return len(lst)
+
+    def lpop(self, key):
+        """Pop a value from the head of the list."""
+        with self.lock_list:
+            lst = self._get_list(key)
+            if not lst:
+                return None
+            return lst.pop(0)
+
+    def rpop(self, key):
+        """Pop a value from the tail of the list."""
+        with self.lock_list:
+            lst = self._get_list(key)
+            if not lst:
+                return None
+            return lst.pop()
+
+    def lrange(self, key, start, stop):
+        """Get a subrange from the list."""
+        with self.lock_list:
+            lst = self._get_list(key)
+            start = int(start)
+            stop = int(stop)
+            return lst[start:stop + 1]
+
+
+    def llen(self, key):
+        """Get the length of the list."""
+        with self.lock_list:
+            lst = self._get_list(key)
+            return len(lst)
+        
+    def delpush(self, key):
+        """
+        Delete the entire key and push new values to a list (head by default).
+        """
+        with self.lock_list:
+            # Remove the existing key if it exists
+            self.data_store.pop(key, None)
+
+        return "Success"
+        
+    # End list
 
 
     def exists(self, key: str) -> bool:

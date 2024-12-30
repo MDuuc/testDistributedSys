@@ -28,8 +28,8 @@ def main():
                 if cmd in ["set", "get", "delete", "append", "keys", "flushall", 
                           "expire", "ttl", "persist", "exists", 
                           "hset", "hget", "hdel", "hgetall", "hdelall",
-                           "zset",  "zrange", "zrevrange", "zdelvalue", "zdelkey", "zrank", "zgetall"
-                          
+                           "zset",  "zrange", "zrevrange", "zdelvalue", "zdelkey", "zrank", "zgetall",
+                            "lpush", "rpush", "lpop", "rpop", "lrange", "llen", "delpush",
                           ]:
                     if cmd == "set" and len(args) >= 4 and args[-2].lower() == "ex":
                         key, value = args[0], args[1]
@@ -38,6 +38,13 @@ def main():
                     else:
                         method = getattr(client, cmd)
                         result = method(*args)
+
+                    # Handle special TTL cases
+                    if cmd == "ttl":
+                        if result == -2:
+                            result= "Key does not exist."
+                        elif result == -1:
+                            result="Key exists but has no expiration."
                         
                     print(result)
                 else:
@@ -66,17 +73,27 @@ if __name__ == "__main__":
 # zset scores 100 alice
 # zset scores 20 bobe
 # zset scores 30 hihi
-# zrank scores bobe
-# zrange scores 0 3  
-# zrevrange scores 0 3  
-# zdelvalue scores hihi
-# zgetall scores
-# zdelkey scores
+# zrank scores bobe     -> rank position
+# zrange scores 0 3        -> sort from low to high
+# zrevrange scores 0 3   ->high to low
+# zdelvalue scores hihi   ->delete 
+# zgetall scores               ->get all
+# zdelkey scores               ->delete all
 
 # For Hash
 # hset student name kious  
 # hset student age 19  
 # hget student name
-# hgetall student 
+# hgetall student                
 # hdel student name 
 # hdelall student 
+
+# For List
+# lpush alphabet a b c   ->return 3
+# lpush alphabet d e f g h  -> return 8 (3+5)
+# llen alphabet      -> return 8 
+# lrange alphabet 1 4    ->  ['e', 'f', 'g', 'h']
+# rpop alphabet           -> c   
+# lpop alphabet           -> d
+# lpop alphabet            -> e
+# delpush alphabet      ->Success
