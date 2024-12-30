@@ -1,0 +1,159 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{color}
+
+\title{Implementation of a Fault-Tolerant Key-Value Server Using RPC: A Redis Clone}
+\author{Technical Report}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This implementation creates a simplified Redis clone with a focus on fault tolerance and reliability, while maintaining the core functionality of a key-value store.
+
+\section{System Architecture}
+
+\subsection{Core Components}
+The system consists of four main components:
+\begin{enumerate}
+    \item \textbf{RPC Server}: Handles client connections and method invocations
+    \item \textbf{RPC Client}: Provides the interface for client-server communication
+    \item \textbf{Redis Clone}: Implements the key-value store functionality
+    \item \textbf{Client Interface}: Provides a command-line interface for user interaction
+\end{enumerate}
+
+\subsection{Communication Protocol}
+The RPC implementation uses a JSON-based protocol for method invocation:
+\begin{itemize}
+    \item \textbf{Request Format}: (method\_name, args, kwargs)
+    \item \textbf{Response Format}: JSON-encoded return value
+    \item \textbf{Transport}: TCP/IP sockets
+\end{itemize}
+
+\section{Fault Tolerance Mechanisms}
+
+\subsection{Thread Safety}
+The implementation ensures thread safety through:
+\begin{itemize}
+    \item Reentrant locks (RLock) for all data store operations
+    \item All data store operations are protected by the lock 
+    \item Thread-safe method registration and invocation
+\end{itemize}
+
+\subsection{Data Persistence}
+Data persistence is achieved through:
+\begin{itemize}
+    \item Periodic snapshots to disk
+    \item Background thread for snapshot management
+    \item Automatic recovery from snapshot on startup
+\end{itemize}
+
+\subsection{Error Handling}
+Comprehensive error handling includes:
+\begin{itemize}
+    \item Exception handling for all operations
+    \item Logging system for operation tracking
+    \item Graceful handling of network failures
+    \item Type checking and validation
+\end{itemize}
+
+\section{Implementation Details}
+
+\subsection{Key-Value Store Operations}
+The system implements the following Redis-like commands:
+\begin{itemize}
+    \item \texttt{SET key value}: Store a key-value pair
+    \item \texttt{GET key}: Retrieve a value by key
+    \item \texttt{DELETE key}: Remove a key-value pair
+    \item \texttt{KEYS}: List all keys
+    \item \texttt{FLUSHALL}: Clear all data
+    \item \texttt{APPEND key value}: Append to string values
+\end{itemize}
+
+\subsection{Thread Management}
+\begin{itemize}
+    \item Server uses a thread pool for handling client connections
+    \item Background thread for periodic snapshots
+    \item Thread synchronization using reentrant locks
+\end{itemize}
+
+\section{Code Structure}
+
+\subsection{Server Implementation}
+\begin{lstlisting}[language=Python]
+class FaultTolerantRedisClone:
+    def __init__(self):
+        self.data_store = {}
+        self.lock = threading.RLock()
+        self.snapshot_interval = 60
+        # ... initialization code
+\end{lstlisting}
+
+\subsection{RPC Layer}
+\begin{lstlisting}[language=Python]
+class RPCServer:
+    def __handle__(self, client, address):
+        # Handle client requests
+        while True:
+            try:
+                functionName, args, kwargs = json.loads(
+                    client.recv(SIZE).decode())
+                response = self._methods[functionName](*args, **kwargs)
+                client.sendall(json.dumps(response).encode())
+            except:
+                break
+\end{lstlisting}
+
+\section{Performance Considerations}
+
+\subsection{Memory Management}
+\begin{itemize}
+    \item In-memory storage with disk persistence
+    \item Efficient string operations
+    \item Memory-conscious data structures
+\end{itemize}
+
+\subsection{Network Efficiency}
+\begin{itemize}
+    \item JSON serialization for data transport
+    \item Efficient socket buffer management
+    \item Connection pooling for multiple clients
+\end{itemize}
+
+\section{Reliability Features}
+
+\subsection{Data Integrity}
+\begin{itemize}
+    \item Atomic operations for data consistency
+    \item Snapshot verification on load
+    \item Transaction logging
+\end{itemize}
+
+\subsection{Recovery Mechanisms}
+\begin{itemize}
+    \item Automatic snapshot recovery
+    \item Connection failure handling
+    \item Error state recovery
+\end{itemize}
+
+\section{Future Improvements}
+Potential enhancements include:
+\begin{itemize}
+    \item Data replication for high availability
+    \item Support for complex data types
+    \item Transaction support
+    \item Incremental backup system
+    \item Connection pooling optimization
+\end{itemize}
+
+\section{Conclusion}
+The implemented fault-tolerant key-value server provides a reliable and efficient solution for basic key-value storage needs. The combination of thread safety, data persistence, and comprehensive error handling makes it suitable for production use cases requiring basic Redis-like functionality.
+
+\end{document}
