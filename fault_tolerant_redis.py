@@ -11,7 +11,7 @@ class FaultTolerantRedisClone:
     def __init__(self, snapshot_interval: int = 30, snapshot_file: str = "redis_snapshot.json"):
         self.data_store: Dict[str, Any] = {}
         self.sorted_sets: Dict[str, List[tuple]] = {} 
-        self.expiry_times: Dict[str, float] = {}  # Lưu thời gian hết hạn cho các key
+        self.expiry_times: Dict[str, float] = {} 
         self.lock = threading.RLock()  # Reentrant lock for thread safety
         self.lock_list = threading.Lock()
         self.snapshot_interval = snapshot_interval
@@ -489,11 +489,11 @@ class FaultTolerantRedisClone:
     def exists(self, key: str) -> bool:
         try:
             with self.lock:
-                logging.info(f"Checking existence of key: {key}")  # Logging thông tin bắt đầu kiểm tra key
+                logging.info(f"Checking existence of key: {key}") 
                 if key in self.data_store:
-                    # Kiểm tra nếu key đã hết hạn
+                    # Check if the key has expired
                     if key in self.expiry_times and self.expiry_times[key] <= time.time():
-                        # Nếu đã hết hạn, xóa key khỏi data_store và expiry_times
+                        # If it has expired, delete the key from data_store and Expiration_times
                         self.data_store.pop(key, None)
                         self.expiry_times.pop(key, None)
                         logging.info(f"Key {key} is expired and removed.")

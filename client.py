@@ -64,10 +64,10 @@ if __name__ == "__main__":
 # del key
 
 
-# > SET mykey value EX 60   Set key với TTL 60 giây
-# > TTL mykey              Kiểm tra thời gian còn lại
+# > SET mykey value EX 60   Set key with TTL 60 giây
+# > TTL mykey              check time left
 # > EXPIRE mykey 30        Set/update TTL
-# > PERSIST mykey          Xóa TTL
+# > PERSIST mykey          delete TTL
 
 # SORTED SET
 # zset scores 100 alice
